@@ -10,6 +10,7 @@ import tradersRouter from './modules/traders/traders.routes';
 import nonceRouter from './modules/nonce/nonce.routes';
 import swapsRouter from './modules/swaps/swaps.routes';
 import keysRouter from './modules/keys/keys.routes';
+import milestonesRouter from './modules/keys/milestones.routes';
 import internalRouter from './modules/admin/sequencer.routes';
 import eventsRouter from './modules/events/events.routes';
 import { corsMiddleware } from './middlewares/cors.middleware';
@@ -116,6 +117,7 @@ app.use('/staking', routeBodySizeLimit('default'), stakingRouter);
 app.use('/trades', routeBodySizeLimit('default'), tradesRouter);
 app.use('/traders', routeBodySizeLimit('default'), tradersRouter);
 app.use('/keys', routeBodySizeLimit('default'), keysRouter);
+app.use('/milestones', routeBodySizeLimit('default'), milestonesRouter);
 app.use('/swaps', routeBodySizeLimit('default'), swapsRouter);
 app.use('/events', routeBodySizeLimit('default'), eventsRouter);
 

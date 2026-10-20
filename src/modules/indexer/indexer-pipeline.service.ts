@@ -356,6 +356,13 @@ export async function processIndexerEvents(
          await import('./invoice-protocol-indexer.service');
       await processInvoiceProtocolEvents(invoiceEvents);
    }
+   const spotlightBidEvents = events.filter(event =>
+      ['SpotlightBidPlaced', 'SPOTLIGHT_BID_PLACED', 'SpotlightAwarded', 'SPOTLIGHT_AWARDED'].includes(event.eventType)
+   );
+   if (spotlightBidEvents.length > 0) {
+      const { processSpotlightBidEvents } = await import('./spotlight-bid-indexer.service');
+      await processSpotlightBidEvents(spotlightBidEvents);
+   }
    const tradeEvents = events.filter(isTradeEvent);
    const dividendEvents = events.filter(
       event =>
@@ -388,6 +395,35 @@ export async function processIndexerEvents(
       await processTwapUpdatedEvents(twapEvents);
    }
 
+   // DepthUpdated (#1152). Awaited before the cursor moves so a failure
+   // redelivers the batch and key_depth never misses a level change.
+   const depthEvents = events.filter(
+      event =>
+         event.eventType === 'DEPTH_UPDATED' ||
+         event.eventType === 'DepthUpdated'
+   );
+   if (depthEvents.length > 0) {
+      const { processDepthUpdatedEvents } =
+         await import('./key-depth-indexer.service');
+      await processDepthUpdatedEvents(depthEvents);
+   }
+
+   const whitelistEvents = events.filter(
+      event =>
+         event.eventType === 'WalletWhitelisted' ||
+         event.eventType === 'WALLET_WHITELISTED' ||
+         event.eventType === 'WHITELIST_ADDED' ||
+         event.eventType === 'WalletRemovedFromWhitelist' ||
+         event.eventType === 'WALLET_REMOVED_FROM_WHITELIST' ||
+         event.eventType === 'WHITELIST_REMOVED'
+   );
+   if (whitelistEvents.length > 0) {
+      const { processWhitelistEvents } = await import(
+         './whitelist-indexer.service'
+      );
+      await processWhitelistEvents(whitelistEvents);
+   }
+
    // Governance lifecycle events (PROPOSAL_CREATED / VOTE_CAST /
    // PROPOSAL_EXECUTED). Processed in order before the cursor moves so a
    // batch that creates a proposal and records its votes stays consistent.
@@ -396,6 +432,44 @@ export async function processIndexerEvents(
       const { processGovernanceProposalEvents } =
          await import('./governance-proposal-indexer.service');
       await processGovernanceProposalEvents(governanceEvents);
+   }
+
+   const { CURVE_UPDATE_EVENT_TYPES, processCurveUpdateEvents } =
+      await import('./curve-update-indexer.service');
+   const curveUpdateEvents = events.filter(event =>
+      CURVE_UPDATE_EVENT_TYPES.has(event.eventType)
+   );
+   if (curveUpdateEvents.length > 0) {
+      await processCurveUpdateEvents(curveUpdateEvents);
+   }
+
+   const {
+      MILESTONE_REWARD_CLAIMED_EVENT_TYPES,
+      processMilestoneRewardClaimedEvents,
+   } = await import('./milestone-claim-indexer.service');
+   const milestoneClaimEvents = events.filter(event =>
+      MILESTONE_REWARD_CLAIMED_EVENT_TYPES.has(event.eventType)
+   );
+   if (milestoneClaimEvents.length > 0) {
+      await processMilestoneRewardClaimedEvents(milestoneClaimEvents);
+   }
+
+   const { KEY_RETIREMENT_EVENT_TYPES, processKeyRetirementEvents } =
+      await import('./key-retirement-indexer.service');
+   const retirementEvents = events.filter(event =>
+      KEY_RETIREMENT_EVENT_TYPES.has(event.eventType)
+   );
+   if (retirementEvents.length > 0) {
+      await processKeyRetirementEvents(retirementEvents);
+   }
+
+   const { KEY_LAUNCH_AUCTION_EVENT_TYPES, processKeyLaunchAuctionEvents } =
+      await import('./key-launch-auction-indexer.service');
+   const launchAuctionEvents = events.filter(event =>
+      KEY_LAUNCH_AUCTION_EVENT_TYPES.has(event.eventType)
+   );
+   if (launchAuctionEvents.length > 0) {
+      await processKeyLaunchAuctionEvents(launchAuctionEvents);
    }
 
    if (tradeEvents.length > 0) {

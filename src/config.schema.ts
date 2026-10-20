@@ -608,6 +608,29 @@ export const envSchema = z
          .int()
          .positive()
          .optional(),
+
+      // Campaign evaluation and expiry cron (#campaign-cron)
+      CAMPAIGN_CRON_ENABLED: booleanCoerce.default(true),
+      CAMPAIGN_EVALUATION_INTERVAL_HOURS: z.coerce
+         .number()
+         .int()
+         .positive()
+         .default(24),
+      CAMPAIGN_END_CHECK_INTERVAL_MINUTES: z.coerce
+         .number()
+         .int()
+         .positive()
+         .default(60),
+      CAMPAIGN_QUALIFICATION_BATCH_SIZE: z.coerce
+         .number()
+         .int()
+         .positive()
+         .default(100),
+      CAMPAIGN_QUALIFICATION_CONCURRENCY: z.coerce
+         .number()
+         .int()
+         .positive()
+         .default(5),
    })
    .superRefine((data, ctx) => {
       if (data.MODE === 'production' && data.STELLAR_NETWORK === 'testnet') {

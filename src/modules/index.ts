@@ -39,7 +39,9 @@ import stakerRouter from './revenue/staker-revenue.routes';
 import creatorRevenueRouter from './revenue/creator-revenue.routes';
 import vaultRouter from './staking/vault.routes';
 import portfolioRouter from './portfolio/portfolio.routes';
-import referralRouter from './referrals/referral-earnings.routes';
+import referralTierRouter from './referrals/referral-tier.routes';
+import referralRouter from './referrals/referrals.routes';
+import referralEarningsRouter from './referrals/referral-earnings.routes';
 import contractsRouter from './contracts/contract.routes';
 import stakingRouter from './staking/staking.routes';
 import sellersRouter from './sellers/sellers.routes';
@@ -55,6 +57,7 @@ import nonceRouter from './nonce/nonce.routes';
 import swapsRouter from './swaps/swaps.routes';
 import eventsRouter from './events/events.routes';
 import tipsRouter from './tips/tips.routes';
+import milestonesRouter from './keys/milestones.routes';
 
 import { BASE as CREATORS_BASE } from '../constants/creator.constants';
 
@@ -116,7 +119,9 @@ router.use('/staker', routeBodySizeLimit('default'), stakerRouter);
 router.use('/', routeBodySizeLimit('default'), creatorRevenueRouter);
 router.use('/staking', routeBodySizeLimit('default'), vaultRouter);
 router.use('/portfolio', routeBodySizeLimit('default'), portfolioRouter);
+router.use('/referrals', routeBodySizeLimit('default'), referralTierRouter);
 router.use('/referrals', routeBodySizeLimit('default'), referralRouter);
+router.use('/referrals', routeBodySizeLimit('default'), referralEarningsRouter);
 router.use('/contracts', routeBodySizeLimit('default'), contractsRouter);
 router.use('/watchlist', routeBodySizeLimit('default'), watchlistRouter);
 router.use(
@@ -139,5 +144,6 @@ router.use('/trades', routeBodySizeLimit('default'), tradesRouter);
 router.use('/traders', routeBodySizeLimit('default'), tradersRouter);
 router.use('/nonce', routeBodySizeLimit('default'), nonceRouter);
 router.use('/swaps', routeBodySizeLimit('default'), swapsRouter);
+router.use('/milestones', routeBodySizeLimit('default'), milestonesRouter);
 
 export default router;

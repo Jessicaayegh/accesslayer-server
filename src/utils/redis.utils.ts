@@ -28,7 +28,10 @@ function createRedisClient(): Redis | null {
          lazyConnect: false,
          maxRetriesPerRequest: 1,
          enableOfflineQueue: false,
-         retryStrategy: (attempt: number) => Math.min(attempt * 500, 5000),
+         retryStrategy: (attempt: number) =>
+            process.env.NODE_ENV === 'test' || envConfig.MODE === 'test'
+               ? null
+               : Math.min(attempt * 500, 5000),
       });
 
       client.on('ready', () => {
@@ -179,6 +182,37 @@ export async function cacheSetRaw(
          },
          'Redis SET failed; skipping cache write'
       );
+   }
+}
+
+/**
+ * Set a key only if it does not already exist (atomic SET NX) with an expiration.
+ * Returns true if the key was set, or false if it already existed.
+ * When Redis is unavailable or circuit breaker is open, returns true so requests proceed.
+ */
+export async function cacheSetRawNx(
+   key: string,
+   value: string,
+   ttlSeconds: number
+): Promise<boolean> {
+   if (redisCircuitBreaker.isOpen()) return true;
+   const client = getRedisClient();
+   if (!client) return true;
+   try {
+      const result = await client.set(key, value, 'EX', ttlSeconds, 'NX');
+      redisCircuitBreaker.recordSuccess();
+      return result === 'OK';
+   } catch (error) {
+      redisCircuitBreaker.recordFailure(error);
+      logger.warn(
+         {
+            type: 'redis_set_nx_failed',
+            key,
+            error: error instanceof Error ? error.message : String(error),
+         },
+         'Redis SET NX failed; allowing request through'
+      );
+      return true;
    }
 }
 

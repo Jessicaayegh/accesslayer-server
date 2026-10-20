@@ -41,6 +41,7 @@ describe('LP allocation tracking and TVL reporting (#943)', () => {
    beforeEach(async () => {
       await prisma.lpAllocation.deleteMany({});
       await prisma.creatorProfile.deleteMany({});
+      await prisma.stellarWallet.deleteMany({});
       await prisma.user.deleteMany({});
 
       const userA = await prisma.user.create({
