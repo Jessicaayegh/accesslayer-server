@@ -35,6 +35,7 @@ jobs:
       env:
          DATABASE_URL: postgresql://accesslayer:local-test-only@localhost:5432/accesslayer_test
          REDIS_URL: redis://localhost:6379
+         JEST_TEST_DB_RESET: '1'
          MODE: test
 
       steps:
@@ -71,7 +72,7 @@ jobs:
            run: pnpm exec prisma db push --skip-generate
 
          - name: Run Jest suite
-           run: pnpm test --ci
+           run: pnpm test --ci --runInBand
 
    invoice-protocol:
       runs-on: ubuntu-latest
