@@ -71,7 +71,7 @@ jobs:
            run: pnpm exec prisma db push --skip-generate
 
          - name: Run Jest suite
-           run: pnpm test -- --ci
+           run: pnpm test --ci
 
    invoice-protocol:
       runs-on: ubuntu-latest
