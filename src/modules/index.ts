@@ -53,6 +53,13 @@ import lpRouter from './lp/lp.routes';
 import auctionRouter from './auctions/auction.routes';
 import holdersRouter from './dividends/holders.routes';
 import multisigRouter from './multisig/multisig.routes';
+import discoveryRouter from './keys/discovery.routes';
+import tradesRouter from './trades/trades.routes';
+import tradersRouter from './traders/traders.routes';
+import nonceRouter from './nonce/nonce.routes';
+import swapsRouter from './swaps/swaps.routes';
+import eventsRouter from './events/events.routes';
+import tipsRouter from './tips/tips.routes';
 import { BASE as CREATORS_BASE } from '../constants/creator.constants';
 
 const router = Router();
@@ -133,5 +140,12 @@ router.use('/lp', routeBodySizeLimit('default'), lpRouter);
 router.use('/auctions', routeBodySizeLimit('default'), auctionRouter);
 router.use('/holders', routeBodySizeLimit('default'), holdersRouter);
 router.use('/multisig', routeBodySizeLimit('default'), multisigRouter);
+router.use('/events', routeBodySizeLimit('default'), eventsRouter);
+router.use('/tips', routeBodySizeLimit('default'), tipsRouter);
+router.use('/discovery', routeBodySizeLimit('default'), discoveryRouter);
+router.use('/trades', routeBodySizeLimit('default'), tradesRouter);
+router.use('/traders', routeBodySizeLimit('default'), tradersRouter);
+router.use('/nonce', routeBodySizeLimit('default'), nonceRouter);
+router.use('/swaps', routeBodySizeLimit('default'), swapsRouter);
 
 export default router;
