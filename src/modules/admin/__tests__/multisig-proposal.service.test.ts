@@ -1,4 +1,123 @@
-jest.unmock('@prisma/client');
+jest.mock('../../../utils/prisma.utils', () => {
+   const proposals: Record<string, any>[] = [];
+   const signatures: Record<string, any>[] = [];
+   let nextId = 1;
+
+   const withSignatures = (proposal: Record<string, any>) => ({
+      ...proposal,
+      signatures: signatures.filter(
+         signature => signature.proposalId === proposal.proposalId
+      ),
+   });
+   const findProposal = (where: Record<string, string>) =>
+      proposals.find(
+         proposal =>
+            proposal.proposalId === where.proposalId || proposal.id === where.id
+      );
+
+   const prisma: Record<string, any> = {
+      multisigProposal: {
+         create: jest.fn(async ({ data }: { data: Record<string, any> }) => {
+            const now = new Date();
+            const proposal = {
+               id: `proposal-${nextId++}`,
+               proposedAt: now,
+               executedAt: null,
+               rejectedAt: null,
+               rejectedBy: null,
+               rejectionReason: null,
+               createdAt: now,
+               updatedAt: now,
+               ...data,
+            };
+            proposals.push(proposal);
+            return proposal;
+         }),
+         findMany: jest.fn(
+            async ({
+               where = {},
+               skip = 0,
+               take,
+            }: {
+               where?: Record<string, string>;
+               skip?: number;
+               take?: number;
+            }) =>
+               proposals
+                  .filter(
+                     proposal =>
+                        !where.status || proposal.status === where.status
+                  )
+                  .sort(
+                     (left, right) =>
+                        right.createdAt.getTime() - left.createdAt.getTime()
+                  )
+                  .slice(skip, take === undefined ? undefined : skip + take)
+                  .map(withSignatures)
+         ),
+         findUnique: jest.fn(
+            async ({ where }: { where: Record<string, string> }) => {
+               const proposal = findProposal(where);
+               return proposal ? withSignatures(proposal) : null;
+            }
+         ),
+         update: jest.fn(
+            async ({
+               where,
+               data,
+               include,
+            }: {
+               where: Record<string, string>;
+               data: Record<string, any>;
+               include?: Record<string, unknown>;
+            }) => {
+               const proposal = findProposal(where);
+               if (!proposal) {
+                  throw new Error('Proposal not found in test double');
+               }
+               Object.assign(proposal, data, { updatedAt: new Date() });
+               return include?.signatures ? withSignatures(proposal) : proposal;
+            }
+         ),
+         count: jest.fn(
+            async ({ where = {} }: { where?: Record<string, string> }) =>
+               proposals.filter(
+                  proposal => !where.status || proposal.status === where.status
+               ).length
+         ),
+         deleteMany: jest.fn(async () => {
+            const count = proposals.length;
+            proposals.length = 0;
+            return { count };
+         }),
+      },
+      multisigSignature: {
+         create: jest.fn(async ({ data }: { data: Record<string, any> }) => {
+            const signature = {
+               id: `signature-${nextId++}`,
+               signedAt: new Date(),
+               ...data,
+            };
+            signatures.push(signature);
+            return signature;
+         }),
+         deleteMany: jest.fn(async () => {
+            const count = signatures.length;
+            signatures.length = 0;
+            return { count };
+         }),
+      },
+      auditEvent: { create: jest.fn(async () => ({})) },
+      auditLog: { create: jest.fn(async () => ({})) },
+      $transaction: jest.fn(
+         async (
+            callback: (transaction: any) => Promise<unknown>
+         ): Promise<unknown> => callback(prisma)
+      ),
+   };
+
+   return { prisma };
+});
 
 import { prisma } from '../../../utils/prisma.utils';
 import { Keypair } from '@stellar/stellar-base';
