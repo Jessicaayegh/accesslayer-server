@@ -47,6 +47,10 @@ import { KeySearchQueryTooShortError, searchKeys } from './key-search.service';
 import { KEY_SEARCH_MIN_QUERY_LENGTH } from '../../constants/notifications.constants';
 import dividendRouter from '../dividends/dividend.routes';
 import whitelistRouter from '../whitelist/whitelist.routes';
+import coCreatorsRouter from '../co-creators/co-creators.routes';
+import reservesRouter from '../reserves/reserves.routes';
+import contentAccessRouter from '../content-access/content-access.routes';
+import tipsRouter from '../tips/tips.routes';
 import {
    requireJwtAuth,
    requireKeyCreator,
@@ -1150,46 +1154,93 @@ router.get('/:keyId/fees', async (req, res, next) => {
    }
 });
 
+import { getSwapFeeTier, getKeyFeeHistory } from './key-swap-fee.service';
+
 const dynamicFeeQuerySchema = z.object({
    amount: z.coerce.number().int().nonnegative(),
    direction: z.enum(['buy', 'sell']),
    wallet: StellarAddressSchema.optional(),
 });
 
+const feeHistoryQuerySchema = z.object({
+   limit: z.coerce.number().int().min(1).max(100).default(50),
+   offset: z.coerce.number().int().nonnegative().default(0),
+});
+
 /**
- * GET /api/v1/keys/:keyId/fee
- * Computes the effective dynamic fee rate for a given trade, factoring in base fee,
- * volume-tier discount, protocol fee, and creator royalty (#962).
+ * GET /api/v1/keys/:keyId/fee/history
+ * Returns fee tier change history with timestamps from FeeAdjusted events.
  */
-router.get('/:keyId/fee', async (req, res, next) => {
-   const parsed = dynamicFeeQuerySchema.safeParse(req.query);
+router.get('/:keyId/fee/history', async (req, res, next) => {
+   const parsed = feeHistoryQuerySchema.safeParse(req.query);
    if (!parsed.success) {
       sendValidationError(
          res,
-         'Invalid dynamic fee query',
+         'Invalid fee history query parameters',
          zodIssuesToDetails(parsed.error.issues)
       );
       return;
    }
 
    try {
-      // We dynamically load the service here to avoid massive circular imports if any
-      const { getDynamicFeeRate } = await import('./key-dynamic-fee.service');
+      const history = await getKeyFeeHistory(req.params.keyId, parsed.data);
+      sendSuccess(res, history);
+   } catch (error) {
+      if (error instanceof KeyNotFoundError) {
+         sendNotFound(res, 'Key');
+         return;
+      }
+      next(error);
+   }
+});
 
-      // If the request is authenticated, we use the user's wallet for the volume discount
-      // In a real implementation we would extract the wallet from the JWT middleware (req.user),
-      // but this endpoint is public. We optionally accept a wallet address to preview discount.
-      const wallet = parsed.data.wallet;
+/**
+ * GET /api/v1/keys/:keyId/fee
+ * Returns the current swap fee tier for a given creator key by reading the dynamic fee contract,
+ * including current volume bracket, fee in basis points, and rolling 24h volume (#1055).
+ * Cached with 60s TTL.
+ */
+router.get('/:keyId/fee', async (req, res, next) => {
+   // If trade calculation query params are provided, handle dynamic fee rate computation
+   if (req.query.amount !== undefined && req.query.direction !== undefined) {
+      const parsed = dynamicFeeQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+         sendValidationError(
+            res,
+            'Invalid dynamic fee query',
+            zodIssuesToDetails(parsed.error.issues)
+         );
+         return;
+      }
 
-      sendSuccess(
-         res,
-         await getDynamicFeeRate(
-            req.params.keyId,
-            parsed.data.amount,
-            parsed.data.direction,
-            wallet
-         )
-      );
+      try {
+         const { getDynamicFeeRate } =
+            await import('./key-dynamic-fee.service');
+         const wallet = parsed.data.wallet;
+
+         sendSuccess(
+            res,
+            await getDynamicFeeRate(
+               req.params.keyId,
+               parsed.data.amount,
+               parsed.data.direction,
+               wallet
+            )
+         );
+         return;
+      } catch (error) {
+         if (error instanceof KeyNotFoundError) {
+            sendNotFound(res, 'Key');
+            return;
+         }
+         next(error);
+         return;
+      }
+   }
+
+   try {
+      const feeTier = await getSwapFeeTier(req.params.keyId);
+      sendSuccess(res, feeTier);
    } catch (error) {
       if (error instanceof KeyNotFoundError) {
          sendNotFound(res, 'Key');
@@ -2028,6 +2079,18 @@ router.use('/', dividendRouter);
 
 // Mount whitelist routes
 router.use('/', whitelistRouter);
+
+// Mount co-creator roster routes (#1139)
+router.use('/', coCreatorsRouter);
+
+// Mount key reserve balance routes (#1140)
+router.use('/', reservesRouter);
+
+// Mount content-gate access routes (#1137)
+router.use('/', contentAccessRouter);
+
+// Mount tip history routes (#1132)
+router.use('/', tipsRouter);
 
 // ── POST /:keyId/burn ─────────────────────────────────────────
 

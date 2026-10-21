@@ -22,6 +22,8 @@ import { issuerRouter } from './invoice/invoice-protocol.routes';
 import freezeRouter from './freeze/freeze.routes';
 import platformRouter from './platform/platform.routes';
 import searchRouter from './search/search.routes';
+import { issuerVerificationRouter } from './issuers/issuer-verification.routes';
+import { investorHealthRouter } from './portfolio/portfolio-health-score.routes';
 
 import tradingRouter from './trading/multi-buy.routes';
 import sequencerRouter from './admin/sequencer.routes';
@@ -87,6 +89,8 @@ router.use('/activity', routeBodySizeLimit('default'), activityRouter);
 router.use('/ownership', routeBodySizeLimit('default'), ownershipRouter);
 router.use('/invoices', routeBodySizeLimit('default'), invoiceRouter);
 router.use('/issuers', routeBodySizeLimit('default'), issuerRouter);
+router.use('/issuers', routeBodySizeLimit('default'), issuerVerificationRouter);
+router.use('/investors', routeBodySizeLimit('default'), investorHealthRouter);
 router.use('/subscriptions', routeBodySizeLimit('default'), subscriptionRouter);
 router.use(CREATORS_BASE, routeBodySizeLimit('creators'), webhookRouter);
 router.use('/wallets', routeBodySizeLimit('default'), walletsRouter);
