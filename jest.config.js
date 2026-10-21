@@ -19,4 +19,13 @@ module.exports = {
    roots: ['<rootDir>/src'],
    setupFiles: ['./jest.setup.ts'],
    setupFilesAfterEnv: ['<rootDir>/jest.integration.setup.ts'],
+   testEnvironmentOptions: {
+      // Jest 30 soft-deletes globals between test files, which recursively
+      // rewrites accessors on long-lived objects (e.g. EventEmitter
+      // `_eventsCount`) and blows the stack with
+      // "RangeError: Maximum call stack size exceeded" when the whole suite
+      // runs in a single process (--runInBand in CI). Cleanup is disabled so
+      // a leaked global cannot crash the runner.
+      globalsCleanup: 'off',
+   },
 };
