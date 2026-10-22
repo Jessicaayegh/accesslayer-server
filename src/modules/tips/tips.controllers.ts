@@ -1,9 +1,10 @@
 import { AsyncController } from '../../types/auth.types';
 import { sendSuccess } from '../../utils/api-response.utils';
-import { TipNotFoundError, getTipContent } from './tips.service';
+import { getTipMessageContent } from './tips.service';
 
 export const httpGetTipContent: AsyncController = async (req, res, next) => {
-   const tipId = req.params.tip_id;
+   const keyId = Array.isArray(req.params.key_id) ? req.params.key_id[0] : req.params.key_id;
+   const tipId = Array.isArray(req.params.tip_id) ? req.params.tip_id[0] : req.params.tip_id;
    if (typeof tipId !== 'string' || !tipId.trim()) {
       res.status(400).json({
          success: false,
@@ -16,20 +17,19 @@ export const httpGetTipContent: AsyncController = async (req, res, next) => {
    }
 
    try {
-      const content = await getTipContent(tipId);
-      sendSuccess(res, content);
-   } catch (error) {
-      if (error instanceof TipNotFoundError) {
+      const content = await getTipMessageContent(keyId, tipId);
+      if (!content) {
          res.status(404).json({
             success: false,
             error: {
                code: 'TIP_NOT_FOUND',
-               message: error.message,
+               message: 'Tip not found or has no message',
             },
          });
          return;
       }
-
+      sendSuccess(res, content);
+   } catch (error) {
       next(error);
    }
 };
