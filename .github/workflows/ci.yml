@@ -71,7 +71,8 @@ jobs:
            run: pnpm exec prisma db push --skip-generate
 
          - name: Run Jest suite
-           run: pnpm test --ci --runInBand
+           timeout-minutes: 75
+           run: pnpm test --ci --maxWorkers=1
 
    invoice-protocol:
       runs-on: ubuntu-latest
