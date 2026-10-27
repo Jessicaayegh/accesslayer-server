@@ -65,9 +65,11 @@ import { BASE as CREATORS_BASE } from '../constants/creator.constants';
 const router = Router();
 
 // Adaptive per-wallet/per-IP database query cost governor (#755).
-// Mounted ahead of route resolution so it matches on req.path, not req.route,
-// and ahead of every group below so it covers the whole API surface.
-// Exempts /health and its own /internal/qcost management routes.
+// Mounted ahead of route resolution (so it matches on req.path, not req.route — see
+// query-cost.utils.ts) and ahead of every group below, so it covers the whole API
+// surface rather than needing to be threaded into each route individually.
+// Exempts /health and its own /internal/qcost management routes (see
+// QUERY_COST_EXEMPT_PATH_PREFIXES).
 router.use(queryCostGovernor());
 
 // Each group gets its own JSON body parser so its size limit can be tuned
@@ -97,8 +99,9 @@ router.use('/alerts', routeBodySizeLimit('default'), alertsRouter);
 router.use('/trading', routeBodySizeLimit('default'), tradingRouter);
 router.use('/internal', routeBodySizeLimit('default'), sequencerRouter);
 
-// Keys: mount keysRouter first, then freezeRouter so freeze handlers can
-// handle /:keyId/freeze and /:keyId/unfreeze when needed.
+// Keys: existing keysRouter first, then freezeRouter so /:keyId/freeze and
+// /:keyId/unfreeze fall through to freeze handlers if keysRouter doesn't own
+// them. Both share the same body-size group.
 router.use('/keys', routeBodySizeLimit('default'), keysRouter);
 router.use('/keys', routeBodySizeLimit('default'), freezeRouter);
 router.use('/cooldowns', routeBodySizeLimit('default'), cooldownRouter);
